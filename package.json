@@ -1,0 +1,17 @@
+{
+  "name": "icecreamlinux",
+  "version": "1.0.0",
+  "description": "Ice cream fitness app",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Cecil Hutchings",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "mongodb": "^2.2.25",
+    "sanitizer": "^0.1.3"
+  }
+}
