@@ -11,6 +11,9 @@
   "dependencies": {
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
+    "jQuery": "^1.7.4",
+    "jquery": "^3.2.1",
+    "mongo-sanitize": "^1.0.0",
     "mongodb": "^2.2.25",
     "sanitizer": "^0.1.3"
   }

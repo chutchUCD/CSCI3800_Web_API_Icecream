@@ -1,8 +1,13 @@
+/*
+    To steamline development, using underscore-node.
+    Todo-deploy and test that this works!
+*/
 var express = require('express'),
+_ = require('underscore-node'),
 mongo=require('mongodb'),
 bpar = require('body-parser'),
 //avault = require('avault')
-sanitizer = require('sanitizer');
+sanitizer = require('mongo-sanitize');
 
 //setup express.
 var app = express()
@@ -30,10 +35,18 @@ function resFunc(e, res, d, stts, message){
     if(e){
         console.log(e)
     }
+    if(d){
+        d.close()
+    }
     res.status(stts).send(message)
-    d.close()
 }
 
+function cleanInput(i){
+    if (!( _.isString(i))){
+        return false
+    }
+    return _.escape((sanitizer(i)))
+}
 //Read flavors
 function readAllFlavors(db, req, res){
     var collection = db.collection("categories")
@@ -52,12 +65,22 @@ function readAllFlavors(db, req, res){
     Id: 0
 */
 /* Read Movie -> from the query string, get several movie titles and ids */
+
+function requestEmpty(req, res, needs_value){
+    if(!req.query ||  _.isEmpty(req.query)  ){
+        resFunc(null, res, null, 400, "No query. Needs "+needs_value)
+        return true;
+    }
+    return false;
+}
+
 function readFlavorName(db, req, res){
-    if (!req.query.name){
-        resFunc(undefined, res, db, 400, "No query. Needs ?movie=")
+    if(requestEmpty(req, res, "?name")){
         return;
     }
-    var icecream_name = sanitize.escape(sanitize.sanitize(req.query['name']))
+    console.log(typeof(req.query.name))
+    var icecream_name = cleanInput(req.query['name'])
+    //no string check required because query string converts to string.
     var collection = db.collection("categories")
     collection.createIndex({"name": "text"}, function(err, result){
         if(err){
@@ -77,15 +100,19 @@ function readFlavorName(db, req, res){
     })
 }
 
-/*Get a movie by it's id.*/
+/*Get a flavor by it's gidnumber.*/
 function readFlavorId(db, req, res){
-    if (!(req.query.id)){
-        resFunc(undefined, res, db, 400, "No query. Needs ?id=")
+    if(requestEmpty(req, res, "?id")){
         return;
     }
-    var idx =sanitize.escape(sanitize.sanitize(req.query["id"]))
+    var idx =cleanInput(req.query["id"])
+    idx = Number(idx)
+    if(!idx && idx!==0){
+        resFunc(null, res, null, 400, "No id.")
+        return
+    }
     var collection = db.collection("categories")
-    collection.findOne({ "gidnum":new mongo.ObjectId(idx)}, function(err, r){
+    collection.findOne({ "$and":[{"gidnum":idx}, {"type":"flavor"}]}, function(err, r){
         if (err){
             resFunc(err, res, db, 500, "Internal server error.")
         }else{
@@ -99,13 +126,12 @@ function readFlavorId(db, req, res){
 }
 
 function readUserEmail(db, req, res){
-    if (!(req.query.email)){
-        resFunc(undefined, res, db, 400, "No query. Needs ?email=")
+    if (requestEmpty(req,res,"?email")){
         return;
     }
-    var idx =sanitize.escape(sanitize.sanitize(req.query["email"]))
+    var email = cleanInput(req.query.email)
     var collection = db.collection("users")
-    collection.findOne({ "_id":new mongo.ObjectId(idx)}, function(err, r){
+    collection.findOne({ "email":email}, function(err, r){
         if (err){
             resFunc(err, res, db, 500, "Internal server error.")
         }else{
@@ -128,17 +154,20 @@ app.get('/flavorbyname', function(req,res){
 })
 
 app.get('/flavorbyid', function(req,res){
-    mongof(readFlavor, req, res)
+    mongof(readFlavorId, req, res)
 })
 
 //Valid emails:
 /*
     test@test.com
 */
-app.get('/userByEmail', function(req,res){
+app.get('/userbyemail', function(req,res){
     mongof(readUserEmail, req, res)
 })
 
-app.listen(PORT, function(){
+app.listen(PORT, function(err){
+    if(err){
+        console.log(err)
+    }
     console.log("Listening")
 })
